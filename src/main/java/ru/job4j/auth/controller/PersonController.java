@@ -28,12 +28,6 @@ public class PersonController {
         return this.persons.findAll();
     }
 
-    @PostMapping("/sign-up")
-    public void signUp(@RequestBody Person person) {
-        person.setPassword(encoder.encode(person.getPassword()));
-        persons.save(person);
-    }
-
     @GetMapping("/{id}")
     public ResponseEntity<Person> findById(@PathVariable int id) {
         var person = this.persons.findById(id);
@@ -43,11 +37,12 @@ public class PersonController {
         );
     }
 
-    @PostMapping("/")
+    @PostMapping(value = "/sign-up")
     public ResponseEntity<Person> create(@RequestBody Person person) {
-        return new ResponseEntity<Person>(
-                this.persons.save(person),
-                HttpStatus.CREATED
+        person.setPassword(encoder.encode(person.getPassword()));
+        return new ResponseEntity<>(
+                person,
+                this.persons.save(person) ? HttpStatus.CREATED : HttpStatus.CONFLICT
         );
     }
 

@@ -19,9 +19,18 @@ public class PersonService {
         return personRepository.findAll();
     }
 
-    public Person save(Person person) {
-            return personRepository.save(person);
+    public boolean save(Person person) {
+        try {
+            return personRepository.save(person).getId() != 0;
+        } catch (Exception e) {
+            log.error("Exception person dont save", e);
         }
+        return false;
+    }
+
+    public Optional<Person> findByLogin(String id) {
+        return personRepository.findByLogin(id);
+    }
 
     public Optional<Person> findById(int id) {
         return personRepository.findById(id);
