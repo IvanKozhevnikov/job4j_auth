@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.job4j.auth.domain.Person;
+import ru.job4j.auth.dto.PersonDto;
 import ru.job4j.auth.repository.PersonRepository;
 
 import java.util.List;
@@ -25,6 +26,16 @@ public class PersonService {
             return true;
         }
         return false;
+    }
+
+    public boolean update(PersonDto person) {
+        Optional<Person> optionalDb = findById(person.getId());
+        if (findById(person.getId()).isEmpty()) {
+            return false;
+        }
+        optionalDb.get().setPassword(person.getPassword());
+        personRepository.save(optionalDb.get());
+        return true;
     }
 
     public Optional<Person> findByLogin(String id) {

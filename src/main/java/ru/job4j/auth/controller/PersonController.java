@@ -2,22 +2,21 @@ package ru.job4j.auth.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.method.P;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.auth.domain.Person;
+import ru.job4j.auth.dto.PersonDto;
 import ru.job4j.auth.service.PersonService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 
@@ -26,19 +25,19 @@ import java.util.List;
 @AllArgsConstructor
 @RequestMapping("/persons")
 public class PersonController {
-    private final PersonService persons;
+    private final PersonService personService;
     private final BCryptPasswordEncoder encoder;
     private final ObjectMapper objectMapper;
     private static final Logger LOGGER = LoggerFactory.getLogger(PersonController.class.getSimpleName());
 
     @GetMapping("/all")
     public List<Person> findAll() {
-        return this.persons.findAll();
+        return this.personService.findAll();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Person> findById(@PathVariable int id) {
-        var person = this.persons.findById(id);
+        var person = this.personService.findById(id);
         return new ResponseEntity<Person>(
                 person.orElse(new Person()),
                 person.isPresent() ? HttpStatus.OK : HttpStatus.NOT_FOUND
@@ -49,7 +48,7 @@ public class PersonController {
     public ResponseEntity<Person> create(@RequestBody Person person) {
         var passwordIn = person.getPassword();
         var loginIn = person.getLogin();
-        var loginDb = persons.findByLogin(person.getLogin());
+        var loginDb = personService.findByLogin(person.getLogin());
         if (loginDb.isPresent()) {
             throw new IllegalArgumentException("Such id already exists.");
         }
@@ -59,7 +58,7 @@ public class PersonController {
         person.setPassword(encoder.encode(person.getPassword()));
         return new ResponseEntity<>(
                 person,
-                this.persons.save(person) ? HttpStatus.CREATED : HttpStatus.CONFLICT
+                this.personService.save(person) ? HttpStatus.CREATED : HttpStatus.CONFLICT
         );
     }
 
@@ -67,15 +66,15 @@ public class PersonController {
     public ResponseEntity<Person> update(@RequestBody Person person) {
         var passwordIn = person.getPassword();
         var loginIn = person.getLogin();
-        var loginDb = persons.findByLogin(person.getLogin());
+        var loginDb = personService.findByLogin(person.getLogin());
         if (loginDb.isPresent()) {
             throw new IllegalArgumentException("Such id already exists.");
         }
-        if (loginIn.length() < 3 || passwordIn.length() < 3) {
+        if (loginIn.length() < 4 || passwordIn.length() < 4) {
             throw new IllegalArgumentException("Invalid login or password. Length must be more than 3 characters.");
         }
         return new ResponseEntity<Person>(
-                this.persons.update(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
+                this.personService.update(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
     }
 
     @DeleteMapping("/{id}")
@@ -83,7 +82,7 @@ public class PersonController {
         Person person = new Person();
         person.setId(id);
         return new ResponseEntity<>(
-                this.persons.delete(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
+                this.personService.delete(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(value = {NullPointerException.class})
@@ -97,5 +96,22 @@ public class PersonController {
             }
         }));
         LOGGER.error(e.getMessage());
+    }
+
+    @PatchMapping("/updatePassword")
+    public ResponseEntity<Void> updatePassword(@RequestBody PersonDto personDto) {
+        String newPassword = personDto.getPassword();
+        if (newPassword == null) {
+            throw new NullPointerException("Password mustn't be empty");
+        }
+        if (newPassword.length() < 4) {
+            throw new IllegalArgumentException("Invalid password. Password length must be more than 4 characters.");
+        }
+        var optionalDb = personService.findById(personDto.getId());
+        if (optionalDb.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        personDto.setPassword(encoder.encode(personDto.getPassword()));
+        return personService.update(personDto) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 }
