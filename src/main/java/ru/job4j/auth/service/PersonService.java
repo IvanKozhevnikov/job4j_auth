@@ -20,10 +20,9 @@ public class PersonService {
     }
 
     public boolean save(Person person) {
-        try {
-            return personRepository.save(person).getId() != 0;
-        } catch (Exception e) {
-            log.error("Exception person dont save", e);
+        if (findById(person.getId()).isEmpty()) {
+            personRepository.save(person);
+            return true;
         }
         return false;
     }

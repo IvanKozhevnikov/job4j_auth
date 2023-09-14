@@ -1,6 +1,10 @@
 package ru.job4j.auth.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.method.P;
@@ -10,19 +14,22 @@ import org.springframework.web.bind.annotation.*;
 import ru.job4j.auth.domain.Person;
 import ru.job4j.auth.service.PersonService;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 
 @RestController
+@ControllerAdvice
+@AllArgsConstructor
 @RequestMapping("/persons")
-@Slf4j
 public class PersonController {
     private final PersonService persons;
     private final BCryptPasswordEncoder encoder;
-
-    public PersonController(PersonService persons, BCryptPasswordEncoder encoder) {
-        this.persons = persons;
-        this.encoder = encoder;
-    }
+    private final ObjectMapper objectMapper;
+    private static final Logger LOGGER = LoggerFactory.getLogger(PersonController.class.getSimpleName());
 
     @GetMapping("/all")
     public List<Person> findAll() {
@@ -40,6 +47,15 @@ public class PersonController {
 
     @PostMapping(value = "/sign-up")
     public ResponseEntity<Person> create(@RequestBody Person person) {
+        var passwordIn = person.getPassword();
+        var loginIn = person.getLogin();
+        var loginDb = persons.findByLogin(person.getLogin());
+        if (loginDb.isPresent()) {
+            throw new IllegalArgumentException("Such id already exists.");
+        }
+        if (loginIn.length() < 3 || passwordIn.length() < 3) {
+            throw new IllegalArgumentException("Invalid login or password. Length must be more than 3 characters.");
+        }
         person.setPassword(encoder.encode(person.getPassword()));
         return new ResponseEntity<>(
                 person,
@@ -49,6 +65,15 @@ public class PersonController {
 
     @PutMapping("/")
     public ResponseEntity<Person> update(@RequestBody Person person) {
+        var passwordIn = person.getPassword();
+        var loginIn = person.getLogin();
+        var loginDb = persons.findByLogin(person.getLogin());
+        if (loginDb.isPresent()) {
+            throw new IllegalArgumentException("Such id already exists.");
+        }
+        if (loginIn.length() < 3 || passwordIn.length() < 3) {
+            throw new IllegalArgumentException("Invalid login or password. Length must be more than 3 characters.");
+        }
         return new ResponseEntity<Person>(
                 this.persons.update(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
     }
@@ -59,5 +84,18 @@ public class PersonController {
         person.setId(id);
         return new ResponseEntity<>(
                 this.persons.delete(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(value = {NullPointerException.class})
+    public void handleException(Exception e, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.setStatus(HttpStatus.BAD_REQUEST.value());
+        response.setContentType("application/json");
+        response.getWriter().write(objectMapper.writeValueAsString(new HashMap<>() {
+            {
+                put("message", "Some of fields empty");
+                put("details", e.getMessage());
+            }
+        }));
+        LOGGER.error(e.getMessage());
     }
 }
