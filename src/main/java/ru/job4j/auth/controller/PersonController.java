@@ -3,6 +3,7 @@ package ru.job4j.auth.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.method.P;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,16 +48,17 @@ public class PersonController {
     }
 
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody Person person) {
-        this.persons.save(person);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Person> update(@RequestBody Person person) {
+        return new ResponseEntity<Person>(
+                person,
+                this.persons.update(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable int id) {
         Person person = new Person();
         person.setId(id);
-        this.persons.delete(person);
-        return ResponseEntity.ok().build();
+        return new ResponseEntity<>(
+                this.persons.delete(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
     }
 }

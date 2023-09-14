@@ -36,11 +36,19 @@ public class PersonService {
         return personRepository.findById(id);
     }
 
-    public void delete(Person id) {
+    public boolean update(Person person) {
+        if (findById(person.getId()).isPresent()) {
+            personRepository.save(person);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean delete(Person id) {
         if (!personRepository.existsById(id.getId())) {
-            throw new IllegalArgumentException("Accident not found");
+            throw new IllegalArgumentException("Person not found");
         }
         personRepository.delete(id);
-
+        return true;
     }
 }
