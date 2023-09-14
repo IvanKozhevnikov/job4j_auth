@@ -50,7 +50,6 @@ public class PersonController {
     @PutMapping("/")
     public ResponseEntity<Person> update(@RequestBody Person person) {
         return new ResponseEntity<Person>(
-                person,
                 this.persons.update(person) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
     }
 
