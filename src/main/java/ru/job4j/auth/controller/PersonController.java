@@ -111,7 +111,8 @@ public class PersonController {
         if (optionalDb.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-        personDto.setPassword(encoder.encode(personDto.getPassword()));
-        return personService.update(personDto) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+        var person = optionalDb.get();
+        person.setPassword(encoder.encode(personDto.getPassword()));
+        return personService.update(person) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 }
