@@ -2,28 +2,34 @@ package ru.job4j.auth.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
+import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.server.ResponseStatusException;
+import ru.job4j.auth.domain.Operation;
 import ru.job4j.auth.domain.Person;
 import ru.job4j.auth.dto.PersonDto;
 import ru.job4j.auth.service.PersonService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
 @RestController
-@ControllerAdvice
 @AllArgsConstructor
 @RequestMapping("/persons")
+@Validated
 public class PersonController {
     private final PersonService personService;
     private final BCryptPasswordEncoder encoder;
@@ -36,7 +42,7 @@ public class PersonController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Person> findById(@PathVariable int id) {
+    public ResponseEntity<Person> findById(@PathVariable @Valid @Positive int id) {
         var person = this.personService.findById(id);
         return new ResponseEntity<Person>(
                 person.orElse(new Person()),
@@ -45,7 +51,8 @@ public class PersonController {
     }
 
     @PostMapping(value = "/sign-up")
-    public ResponseEntity<Person> create(@RequestBody Person person) {
+    @Validated(Operation.OnCreate.class)
+    public ResponseEntity<Person> create(@Valid @NotNull @RequestBody Person person) {
         var passwordIn = person.getPassword();
         var loginIn = person.getLogin();
         var loginDb = personService.findByLogin(person.getLogin());
@@ -63,7 +70,8 @@ public class PersonController {
     }
 
     @PutMapping("/")
-    public ResponseEntity<Person> update(@RequestBody Person person) {
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<Person> update(@RequestBody @Valid @NotNull Person person) {
         var passwordIn = person.getPassword();
         var loginIn = person.getLogin();
         var loginDb = personService.findByLogin(person.getLogin());
@@ -78,7 +86,8 @@ public class PersonController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable int id) {
+    @Validated(Operation.OnDelete.class)
+    public ResponseEntity<Void> delete(@PathVariable @Valid @Positive int id) {
         Person person = new Person();
         person.setId(id);
         return new ResponseEntity<>(
@@ -99,7 +108,8 @@ public class PersonController {
     }
 
     @PatchMapping("/updatePassword")
-    public ResponseEntity<Void> updatePassword(@RequestBody PersonDto personDto) {
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<Void> updatePassword(@RequestBody @Valid @NotNull PersonDto personDto) {
         String newPassword = personDto.getPassword();
         if (newPassword == null) {
             throw new NullPointerException("Password mustn't be empty");

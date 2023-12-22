@@ -16,7 +16,6 @@ import ru.job4j.auth.service.UserDetailsServiceImpl;
 import static ru.job4j.auth.filter.JWTAuthenticationFilter.SIGN_UP_URL;
 
 
-@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 @EnableWebSecurity
 public class WebSecurity extends WebSecurityConfigurerAdapter {
     private UserDetailsServiceImpl userDetailsService;
